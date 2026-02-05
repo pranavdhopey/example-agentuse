@@ -14,7 +14,7 @@ jobs:
       - name: Auto-Diagnose on Failure
         if: failure()
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           # Capture the last 200 lines of the failed log
           # (Keeping it small saves tokens and prevents context overflow)
