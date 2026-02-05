@@ -1,0 +1,27 @@
+name: CI Diagnostics
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Build
+        id: build_step
+        run: npm run build # Or your TF/Go/Python build command
+        
+      - name: Auto-Diagnose on Failure
+        if: failure()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Capture the last 200 lines of the failed log
+          # (Keeping it small saves tokens and prevents context overflow)
+          LOG_TAIL=$(tail -n 200 build_output.log)
+          
+          # Run the Agent
+          npx -y agentuse@latest run build-doctor.agentuse full_build_output="$LOG_TAIL" > diagnosis.md
+          
+          # Comment on the PR using the GitHub CLI
+          gh pr comment ${{ github.event.pull_request.number }} --body-file diagnosis.md
