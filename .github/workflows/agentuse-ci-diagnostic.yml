@@ -1,5 +1,14 @@
 name: CI Diagnostics
-on: [push, pull_request]
+on: 
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Required to allow the agent to post comments on your PR
+permissions:
+  pull-requests: write
+  contents: read
 
 jobs:
   build:
@@ -7,21 +16,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
       - name: Run Build
         id: build_step
-        run: npm run build # Or your TF/Go/Python build command
+        # 2>&1 | tee redirects Error + Output to the file AND the console
+        run: npm run build 2>&1 | tee build_output.log
         
       - name: Auto-Diagnose on Failure
-        if: failure()
+        # only run if the build step above actually failed
+        if: failure() && steps.build_step.outcome == 'failure'
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Capture the last 200 lines of the failed log
-          # (Keeping it small saves tokens and prevents context overflow)
+          # 1. Prepare the log tail
           LOG_TAIL=$(tail -n 200 build_output.log)
           
-          # Run the Agent
-          npx -y agentuse@latest run build-doctor.agentuse full_build_output="$LOG_TAIL" > diagnosis.md
+          # 2. Run AgentUse (using --no-tty for clean logs)
+          npx -y agentuse@latest run build-doctor.agentuse \
+            full_build_output="$LOG_TAIL" \
+            --no-tty > diagnosis.md
           
-          # Comment on the PR using the GitHub CLI
-          gh pr comment ${{ github.event.pull_request.number }} --body-file diagnosis.md
+          # 3. Post comment ONLY if this is a Pull Request
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body-file diagnosis.md
+          else
+            echo "::error::Build Failed. AI Diagnosis below:"
+            cat diagnosis.md
+          fi
