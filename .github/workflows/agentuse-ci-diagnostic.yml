@@ -38,7 +38,7 @@ jobs:
       - name: Auto-Diagnose on Failure
         if: failure() && steps.build_step.outcome == 'failure'
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY_FREE: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           echo "Preparing logs for diagnosis..."
 
