@@ -26,6 +26,9 @@ jobs:
       # -----------------------------
       # Run build and capture logs
       # -----------------------------
+      - name: Install dependencies
+        run: npm ci
+        
       - name: Run Build
         id: build_step
         run: |
