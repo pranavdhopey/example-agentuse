@@ -1,5 +1,5 @@
 ---
-model: openrouter:google/gemini-2.5-flash
+model: openrouter:qwen/qwen3-coder:free
 subagents:
   - path: ./log-scanner.agentuse
 ---
